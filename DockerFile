@@ -1,0 +1,30 @@
+ARG NODE_VERSION=20.3.1
+
+FROM node:${NODE_VERSION}-alpine
+
+WORKDIR /var/www/app
+
+# Copy package files
+COPY package*.json ./
+
+# Install dependencies
+RUN npm install
+
+# Copy source code
+COPY . .
+
+# Copy .env file from outside (will be mounted or copied)
+# Note: If using docker-compose, mount .env as volume
+# If using docker build, copy .env file manually
+
+# Expose port
+EXPOSE 3000
+
+# Build argument to determine environment
+ARG BUILD_ENV=DEV
+
+# Set environment variable
+ENV BUILD_ENV=${BUILD_ENV}
+
+# Conditional command based on BUILD_ENV
+CMD if [ "$BUILD_ENV" = "PROD" ]; then npm run build && npm run start; else npm run dev; fi
