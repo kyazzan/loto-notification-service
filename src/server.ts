@@ -18,12 +18,21 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 app.post('/devices/register', async (req, res) => {
   const { deviceId, userId, fcmToken, platform, appVersion } = req.body || {};
 
-  if (!deviceId || !fcmToken) {
-    return res.status(400).json({ error: 'deviceId and fcmToken are required' });
-  }
+  if (!deviceId)
+    return res.status(400).json({ error: 'deviceId required' });
+
+  if (!fcmToken)
+    return res.status(400).json({ error: 'fcmToken are required' });
+
+  if (!userId)
+    return res.status(400).json({ error: 'userId are required' });
+
 
   try {
     const result = await upsertDevice({ deviceId, userId, fcmToken, platform, appVersion });
+
+    await fcm().subscribeToTopic([fcmToken], 'all');
+
     res.json({ ok: true, ...result });
   } catch (e) {
     res.status(500).json({ ok: false, error: (e as Error).message });
