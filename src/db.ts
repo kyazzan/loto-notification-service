@@ -12,8 +12,8 @@ const pool = new Pool({
 
 export type UpsertDeviceInput = {
   deviceId: string;
-  userId?: string;
-  gameId?: string;
+  userId?: number;
+  gameId?: number;
   fcmToken: string;
   platform?: string;
   appVersion?: string;
@@ -67,7 +67,7 @@ export async function upsertDevice({
   }
 }
 
-export async function getTokensByUserId(userId: string) {
+export async function getTokensByUserId(userId: number) {
   const { rows } = await pool.query(
     'SELECT fcm_token FROM devices WHERE user_id = $1 AND active = true',
     [userId]

@@ -28,13 +28,13 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 app.post('/devices/register', async (req, res) => {
   const { deviceId, userId, gameId, fcmToken, platform, appVersion } = req.body || {};
 
-  if (!deviceId) return sendError(res, 400, 'deviceId required');
+  if (deviceId == null) return sendError(res, 400, 'deviceId required');
 
-  if (!fcmToken) return sendError(res, 400, 'fcmToken are required');
+  if (fcmToken == null) return sendError(res, 400, 'fcmToken are required');
 
-  if (!userId) return sendError(res, 400, 'userId are required');
+  if (userId == null) return sendError(res, 400, 'userId are required');
 
-  if (!gameId) return sendError(res, 400, 'gameId are required');
+  if (gameId == null) return sendError(res, 400, 'gameId are required');
 
   try {
     const result = await upsertDevice({
