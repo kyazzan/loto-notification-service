@@ -50,7 +50,7 @@ export async function upsertDevice({
          active = EXCLUDED.active,
          updated_at = now()
        RETURNING device_id, user_id, fcm_token`,
-      [deviceId, userId || null, gameId || null, fcmToken, platform || null, appVersion || null]
+      [deviceId, userId, gameId, fcmToken, platform || null, appVersion || null]
     );
 
     await client.query('COMMIT');
