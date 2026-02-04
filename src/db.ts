@@ -13,6 +13,7 @@ const pool = new Pool({
 export type UpsertDeviceInput = {
   deviceId: string;
   userId?: string;
+  gameId?: string;
   fcmToken: string;
   platform?: string;
   appVersion?: string;
@@ -21,6 +22,7 @@ export type UpsertDeviceInput = {
 export async function upsertDevice({
   deviceId,
   userId,
+  gameId,
   fcmToken,
   platform,
   appVersion,
@@ -34,17 +36,21 @@ export async function upsertDevice({
       deviceId,
     ]);
 
+    await client.query('UPDATE devices SET active = false WHERE device_id = $1', [deviceId]);
+
     const { rows } = await client.query(
-      `INSERT INTO devices (device_id, user_id, fcm_token, platform, app_version)
-       VALUES ($1, $2, $3, $4, $5)
+      `INSERT INTO devices (device_id, user_id, game_id, fcm_token, platform, app_version, active)
+       VALUES ($1, $2, $3, $4, $5, $6, true)
        ON CONFLICT (device_id) DO UPDATE SET
          user_id = EXCLUDED.user_id,
+         game_id = EXCLUDED.game_id,
          fcm_token = EXCLUDED.fcm_token,
          platform = EXCLUDED.platform,
          app_version = EXCLUDED.app_version,
+         active = EXCLUDED.active,
          updated_at = now()
        RETURNING device_id, user_id, fcm_token`,
-      [deviceId, userId || null, fcmToken, platform || null, appVersion || null]
+      [deviceId, userId || null, gameId || null, fcmToken, platform || null, appVersion || null]
     );
 
     await client.query('COMMIT');
@@ -62,10 +68,30 @@ export async function upsertDevice({
 }
 
 export async function getTokensByUserId(userId: string) {
-  const { rows } = await pool.query('SELECT fcm_token FROM devices WHERE user_id = $1', [
-    userId,
-  ]);
+  const { rows } = await pool.query(
+    'SELECT fcm_token FROM devices WHERE user_id = $1 AND active = true',
+    [userId]
+  );
   return rows.map((r) => r.fcm_token as string);
+}
+
+export async function getAllActiveTokensPage(limit: number, offset: number) {
+  const { rows } = await pool.query(
+    `SELECT fcm_token
+     FROM devices
+     WHERE active = true
+     ORDER BY updated_at DESC, device_id ASC
+     LIMIT $1 OFFSET $2`,
+    [limit, offset]
+  );
+  return rows.map((r) => r.fcm_token as string);
+}
+
+export async function getActiveTokensCount() {
+  const { rows } = await pool.query(
+    'SELECT COUNT(*)::int AS count FROM devices WHERE active = true'
+  );
+  return rows[0]?.count ?? 0;
 }
 
 export async function deleteToken(token: string) {

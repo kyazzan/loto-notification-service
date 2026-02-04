@@ -2,7 +2,13 @@ import 'dotenv/config';
 import express from 'express';
 import figlet from 'figlet';
 import { fcm } from './firebase';
-import { upsertDevice, getTokensByUserId, deleteToken } from './db';
+import {
+  upsertDevice,
+  getTokensByUserId,
+  getAllActiveTokensPage,
+  getActiveTokensCount,
+  deleteToken,
+} from './db';
 
 const chalk = require("chalk");
 const app = express();
@@ -17,10 +23,10 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 
 /**
  * REGISTER DEVICE
- * body: { deviceId, userId?, fcmToken, platform?, appVersion? }
+ * body: { deviceId, userId?, gameId? | game_id?, fcmToken, platform?, appVersion? }
  */
 app.post('/devices/register', async (req, res) => {
-  const { deviceId, userId, fcmToken, platform, appVersion } = req.body || {};
+  const { deviceId, userId, gameId, fcmToken, platform, appVersion } = req.body || {};
 
   if (!deviceId) return sendError(res, 400, 'deviceId required');
 
@@ -28,11 +34,17 @@ app.post('/devices/register', async (req, res) => {
 
   if (!userId) return sendError(res, 400, 'userId are required');
 
+  if (!gameId) return sendError(res, 400, 'gameId are required');
 
   try {
-    const result = await upsertDevice({ deviceId, userId, fcmToken, platform, appVersion });
-
-    await fcm().subscribeToTopic([fcmToken], 'all');
+    const result = await upsertDevice({
+      deviceId,
+      userId,
+      gameId,
+      fcmToken,
+      platform,
+      appVersion,
+    });
 
     res.json({ ok: true, ...result });
   } catch (e) {
@@ -124,21 +136,37 @@ app.post('/push/user', async (req, res) => {
 
 /**
  * SEND TO TOPIC (e.g. "all")
- * body: { topic?, title, body, data?, image? }
+ * body: { title, body, data?, image? }
  */
-app.post('/push/topic', async (req, res) => {
-  const { topic, title, body, data, image } = req.body || {};
+app.post('/push/all', async (req, res) => {
+  const { title, body, data, image } = req.body || {};
   if (!title || !body) return sendError(res, 400, 'title, body are required');
 
-  const t = topic || process.env.DEFAULT_TOPIC || 'all';
-
   try {
-    const msgId = await fcm().send({
-      topic: t,
-      notification: { title, body, imageUrl: image || undefined },
-      data: data || undefined,
-    });
-    res.json({ ok: true, topic: t, msgId });
+    const limit = 20;
+    const total = await getActiveTokensCount();
+    if (total === 0) return res.json({ ok: true, sent: 0, info: 'No active users' });
+
+    let sent = 0;
+    let failed = 0;
+    const totalPages = Math.ceil(total / limit);
+
+    for (let page = 0; page < totalPages; page += 1) {
+      const offset = page * limit;
+      const tokens = await getAllActiveTokensPage(limit, offset);
+      if (!tokens.length) continue;
+
+      const resp = await fcm().sendEachForMulticast({
+        tokens,
+        notification: { title, body, imageUrl: image || undefined },
+        data: data || undefined,
+      });
+
+      sent += resp.successCount;
+      failed += resp.failureCount;
+    }
+
+    res.json({ ok: true, sent, failed });
   } catch (e) {
     return sendError(res, 500, (e as Error).message);
   }
