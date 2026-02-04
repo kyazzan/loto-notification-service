@@ -8,6 +8,7 @@ import {
   getAllActiveTokensPage,
   getActiveTokensCount,
   deleteToken,
+  deleteDeviceByIdentifiers,
 } from './db';
 
 const chalk = require("chalk");
@@ -47,6 +48,26 @@ app.post('/devices/register', async (req, res) => {
     });
 
     res.json({ ok: true, ...result });
+  } catch (e) {
+    return sendError(res, 500, (e as Error).message);
+  }
+});
+
+/**
+ * REMOVE DEVICE
+ * body: { deviceId, fcmToken, userId, gameId }
+ */
+app.post('/devices/remove', async (req, res) => {
+  const { deviceId, fcmToken, userId, gameId } = req.body || {};
+
+  if (deviceId == null) return sendError(res, 400, 'deviceId required');
+  if (fcmToken == null) return sendError(res, 400, 'fcmToken are required');
+  if (userId == null) return sendError(res, 400, 'userId are required');
+  if (gameId == null) return sendError(res, 400, 'gameId are required');
+
+  try {
+    const removed = await deleteDeviceByIdentifiers(deviceId, fcmToken, userId, gameId);
+    res.json({ ok: true, removed });
   } catch (e) {
     return sendError(res, 500, (e as Error).message);
   }

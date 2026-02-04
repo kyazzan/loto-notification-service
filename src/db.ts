@@ -98,4 +98,18 @@ export async function deleteToken(token: string) {
   await pool.query('DELETE FROM devices WHERE fcm_token = $1', [token]);
 }
 
+export async function deleteDeviceByIdentifiers(
+  deviceId: string,
+  fcmToken: string,
+  userId: number,
+  gameId: number
+) {
+  const { rowCount } = await pool.query(
+    `DELETE FROM devices
+     WHERE device_id = $1 AND fcm_token = $2 AND user_id = $3 AND game_id = $4`,
+    [deviceId, fcmToken, userId, gameId]
+  );
+  return rowCount || 0;
+}
+
 export { pool };
