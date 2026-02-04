@@ -53,7 +53,7 @@ app.post('/push/token', async (req, res) => {
   try {
     const msgId = await fcm().send({
       token,
-      notification: { title, body, image: image || undefined },
+      notification: { title, body, imageUrl: image || undefined },
       data: data || undefined, // data must be Record<string,string>
     });
     res.json({ ok: true, msgId });
@@ -92,7 +92,7 @@ app.post('/push/user', async (req, res) => {
     for (const part of chunks) {
       const resp = await fcm().sendEachForMulticast({
         tokens: part,
-        notification: { title, body, image: image || undefined },
+        notification: { title, body, imageUrl: image || undefined },
         data: data || undefined,
       });
 
@@ -135,7 +135,7 @@ app.post('/push/topic', async (req, res) => {
   try {
     const msgId = await fcm().send({
       topic: t,
-      notification: { title, body, image: image || undefined },
+      notification: { title, body, imageUrl: image || undefined },
       data: data || undefined,
     });
     res.json({ ok: true, topic: t, msgId });
