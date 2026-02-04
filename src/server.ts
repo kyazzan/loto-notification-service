@@ -8,6 +8,10 @@ const chalk = require("chalk");
 const app = express();
 app.use(express.json());
 
+function sendError(res: express.Response, status: number, message: string) {
+  return res.status(status).json({ ok: false,  message });
+}
+
 // health
 app.get('/health', (_, res) => res.json({ ok: true }));
 
@@ -18,14 +22,11 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 app.post('/devices/register', async (req, res) => {
   const { deviceId, userId, fcmToken, platform, appVersion } = req.body || {};
 
-  if (!deviceId)
-    return res.status(400).json({ error: 'deviceId required' });
+  if (!deviceId) return sendError(res, 400, 'deviceId required');
 
-  if (!fcmToken)
-    return res.status(400).json({ error: 'fcmToken are required' });
+  if (!fcmToken) return sendError(res, 400, 'fcmToken are required');
 
-  if (!userId)
-    return res.status(400).json({ error: 'userId are required' });
+  if (!userId) return sendError(res, 400, 'userId are required');
 
 
   try {
@@ -35,7 +36,7 @@ app.post('/devices/register', async (req, res) => {
 
     res.json({ ok: true, ...result });
   } catch (e) {
-    res.status(500).json({ ok: false, error: (e as Error).message });
+    return sendError(res, 500, (e as Error).message);
   }
 });
 
@@ -46,7 +47,7 @@ app.post('/devices/register', async (req, res) => {
 app.post('/push/token', async (req, res) => {
   const { token, title, body, data, image } = req.body || {};
   if (!token || !title || !body) {
-    return res.status(400).json({ error: 'token, title, body are required' });
+    return sendError(res, 400, 'token, title, body are required');
   }
 
   try {
@@ -57,7 +58,7 @@ app.post('/push/token', async (req, res) => {
     });
     res.json({ ok: true, msgId });
   } catch (e) {
-    res.status(500).json({ ok: false, error: (e as Error).message });
+    return sendError(res, 500, (e as Error).message);
   }
 });
 
@@ -68,14 +69,14 @@ app.post('/push/token', async (req, res) => {
 app.post('/push/user', async (req, res) => {
   const { userId, title, body, data, image } = req.body || {};
   if (!userId || !title || !body) {
-    return res.status(400).json({ error: 'userId, title, body are required' });
+    return sendError(res, 400, 'userId, title, body are required');
   }
 
   let tokens: string[] = [];
   try {
     tokens = await getTokensByUserId(userId);
   } catch (e) {
-    return res.status(500).json({ ok: false, error: (e as Error).message });
+    return sendError(res, 500, (e as Error).message);
   }
 
   if (!tokens.length) return res.json({ ok: true, sent: 0, info: 'No tokens for user' });
@@ -117,7 +118,7 @@ app.post('/push/user', async (req, res) => {
 
     res.json({ ok: true, sent, failed, removedDead: deadTokens.length });
   } catch (e) {
-    res.status(500).json({ ok: false, error: (e as Error).message });
+    return sendError(res, 500, (e as Error).message);
   }
 });
 
@@ -127,7 +128,7 @@ app.post('/push/user', async (req, res) => {
  */
 app.post('/push/topic', async (req, res) => {
   const { topic, title, body, data, image } = req.body || {};
-  if (!title || !body) return res.status(400).json({ error: 'title, body are required' });
+  if (!title || !body) return sendError(res, 400, 'title, body are required');
 
   const t = topic || process.env.DEFAULT_TOPIC || 'all';
 
@@ -139,7 +140,7 @@ app.post('/push/topic', async (req, res) => {
     });
     res.json({ ok: true, topic: t, msgId });
   } catch (e) {
-    res.status(500).json({ ok: false, error: (e as Error).message });
+    return sendError(res, 500, (e as Error).message);
   }
 });
 
