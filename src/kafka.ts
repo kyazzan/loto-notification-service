@@ -169,7 +169,7 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
   const image = normalizeImageUrl(data?.image);
 
   console.log(image);
-  
+
   const userId = typeof userIdRaw === 'string' ? Number(userIdRaw) : userIdRaw;
   if (!userId || Number.isNaN(userId)) {
     console.error('SendUserNotification missing or invalid userId:', userIdRaw);
@@ -200,7 +200,14 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
     const resp = await fcm().sendEachForMulticast({
       tokens: part,
       data: chatId ? { chatId } : {},
-      notification: { title, body, imageUrl: image || undefined },
+      notification: {
+        title,
+        body,
+        imageUrl: image ?? ''
+      },
+      android: {
+        priority: 'high',
+      }
     });
 
     resp.responses.forEach((r, idx) => {
