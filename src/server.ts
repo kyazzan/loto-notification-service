@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from 'express';
 import figlet from 'figlet';
 import { fcm } from './firebase';
+import { initKafkaNotificationReader } from './kafka';
 import {
   upsertDevice,
   getTokensByUserId,
@@ -206,6 +207,10 @@ async function bootstrap() {
       .listen(port, () => resolve())
       .on('error', (err) => reject(err));
   });
+
+  if (process.env.KAFKA_READ_TOPIC) {
+    initKafkaNotificationReader();
+  }
 
   console.log(chalk.blue(figlet.textSync('LOTO', { horizontalLayout: 'full' })));
   console.log(chalk.yellow(figlet.textSync('NOTIFICATION SERVICE', { horizontalLayout: 'full' })));
