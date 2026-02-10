@@ -138,6 +138,8 @@ type KafkaNotificationMessage = {
 export function initKafkaNotificationReader() {
   initKafkaReader(async (rawMsg) => {
     let msg: KafkaNotificationMessage;
+        console.log('------------------------------');
+
     try {
       msg = JSON.parse(rawMsg);
     } catch (err) {
@@ -145,6 +147,9 @@ export function initKafkaNotificationReader() {
       return;
     }
 
+    console.log(msg.eventName,JSON.stringify(msg.data));
+    console.log('------------------------------');
+    
     switch (msg.eventName) {
       case 'SendUserNotification':
         await handleSendUserNotification(msg.data);
