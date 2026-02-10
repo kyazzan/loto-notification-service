@@ -128,6 +128,7 @@ type KafkaNotificationMessage = {
   eventName?: string;
   data?: {
     chatId?: string
+    route?: string,
     userId?: number | string;
     title?: string;
     body?: string;
@@ -138,7 +139,6 @@ type KafkaNotificationMessage = {
 export function initKafkaNotificationReader() {
   initKafkaReader(async (rawMsg) => {
     let msg: KafkaNotificationMessage;
-    console.log('------------------------------');
 
     try {
       msg = JSON.parse(rawMsg);
@@ -146,9 +146,6 @@ export function initKafkaNotificationReader() {
       console.error('Kafka message is not valid JSON:', rawMsg);
       return;
     }
-
-    console.log(msg.eventName, JSON.stringify(msg.data));
-    console.log('------------------------------');
 
     switch (msg.eventName) {
       case 'SendUserNotification':
@@ -162,13 +159,12 @@ export function initKafkaNotificationReader() {
 }
 
 async function handleSendUserNotification(data: KafkaNotificationMessage['data']) {
-  const userIdRaw = data?.userId;
-  const chatId = data?.chatId;
-  const title = data?.title;
-  const body = data?.body;
-  const image = normalizeImageUrl(data?.image);
-
-  console.log(image);
+  const userIdRaw = data?.userId ?? '';
+  const chatId = data?.chatId ?? '';
+  const title = data?.title ?? '';
+  const body = data?.body ?? '';
+  const image = normalizeImageUrl(data?.image) ?? '';
+  const route = data?.route ?? '';
 
   const userId = typeof userIdRaw === 'string' ? Number(userIdRaw) : userIdRaw;
   if (!userId || Number.isNaN(userId)) {
@@ -201,10 +197,11 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
       tokens: part,
       data: {
         eventName: 'SendUserNotification',
-        chatId: chatId ?? '',
-        title: title ?? '',
-        body: body ?? '',
-        image: image ?? '',
+        chatId: chatId,
+        title: title,
+        route: route,
+        body: body,
+        image: image,
       },
       android: { priority: 'high' }, // важно
     });
