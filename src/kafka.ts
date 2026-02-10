@@ -138,7 +138,7 @@ type KafkaNotificationMessage = {
 export function initKafkaNotificationReader() {
   initKafkaReader(async (rawMsg) => {
     let msg: KafkaNotificationMessage;
-        console.log('------------------------------');
+    console.log('------------------------------');
 
     try {
       msg = JSON.parse(rawMsg);
@@ -147,9 +147,9 @@ export function initKafkaNotificationReader() {
       return;
     }
 
-    console.log(msg.eventName,JSON.stringify(msg.data));
+    console.log(msg.eventName, JSON.stringify(msg.data));
     console.log('------------------------------');
-    
+
     switch (msg.eventName) {
       case 'SendUserNotification':
         await handleSendUserNotification(msg.data);
@@ -202,8 +202,17 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
     });
 
     resp.responses.forEach((r, idx) => {
+      if (r.success) {
+        console.log(`Kafka SendUserNotification sent: userId=${userId} token=${part[idx]}`);
+      }
+    });
+
+    resp.responses.forEach((r, idx) => {
       if (!r.success) {
         const code = r.error?.code || '';
+        console.error(
+          `Kafka SendUserNotification failed: userId=${userId} token=${part[idx]} code=${code} message=${r.error?.message || ''}`
+        );
         if (
           code.includes('registration-token-not-registered') ||
           code.includes('invalid-registration-token')
