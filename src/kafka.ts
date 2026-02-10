@@ -168,6 +168,8 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
   const body = data?.body;
   const image = normalizeImageUrl(data?.image);
 
+  console.log(image);
+  
   const userId = typeof userIdRaw === 'string' ? Number(userIdRaw) : userIdRaw;
   if (!userId || Number.isNaN(userId)) {
     console.error('SendUserNotification missing or invalid userId:', userIdRaw);
