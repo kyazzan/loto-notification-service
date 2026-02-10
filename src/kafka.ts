@@ -199,15 +199,14 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
   for (const part of chunks) {
     const resp = await fcm().sendEachForMulticast({
       tokens: part,
-      data: chatId ? { chatId } : {},
-      notification: {
-        title,
-        body,
-        imageUrl: image ?? ''
+      data: {
+        eventName: 'SendUserNotification',
+        chatId: chatId ?? '',
+        title: title ?? '',
+        body: body ?? '',
+        image: image ?? '',
       },
-      android: {
-        priority: 'high',
-      }
+      android: { priority: 'high' }, // важно
     });
 
     resp.responses.forEach((r, idx) => {
