@@ -166,7 +166,7 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
   const chatId = data?.chatId;
   const title = data?.title;
   const body = data?.body;
-  const image = data?.image;
+  const image = normalizeImageUrl(data?.image);
 
   const userId = typeof userIdRaw === 'string' ? Number(userIdRaw) : userIdRaw;
   if (!userId || Number.isNaN(userId)) {
@@ -198,7 +198,7 @@ async function handleSendUserNotification(data: KafkaNotificationMessage['data']
     const resp = await fcm().sendEachForMulticast({
       tokens: part,
       data: chatId ? { chatId } : {},
-      notification: { title, body, imageUrl: image || undefined, },
+      notification: { title, body, imageUrl: image || undefined },
     });
 
     resp.responses.forEach((r, idx) => {
@@ -232,4 +232,17 @@ function chunk<T>(arr: T[], size: number) {
   const out: T[][] = [];
   for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
   return out;
+}
+
+function normalizeImageUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed) return undefined;
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol !== 'http:' && url.protocol !== 'https:') return undefined;
+    return url.toString();
+  } catch {
+    return undefined;
+  }
 }
